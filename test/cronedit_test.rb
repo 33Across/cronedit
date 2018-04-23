@@ -37,15 +37,15 @@ class CronEdit_test < Test::Unit::TestCase
     def test_creation
         e = CronEntry.new( "5,35 0-23/2 * * * echo 123" )
         assert_equal( '5,35 0-23/2 * * * echo 123', e.to_s )
-    
+
         e = CronEntry.new
         assert_equal( "*\t*\t*\t*\t*\t", e.to_s, 'default' )
 
         e = CronEntry.new( {:minute=>5, :command=>'echo 42'} )
         assert_equal( "5\t*\t*\t*\t*\techo 42", e.to_s )
-    
+
     end
-    
+
     def test_parsing
         e = CronEntry.new( "5,35 0-23/2 * * * echo 123" )
         assert_equal( "5,35", e[:minute])
@@ -64,7 +64,7 @@ class CronEdit_test < Test::Unit::TestCase
             CronEntry.new( {:minuteZ=>5, :command=>'echo 42'} )
         }
     end
-  
+
     def test_zip
         Crontab.publicize_methods {
             crontabTest=%Q{
@@ -136,10 +136,10 @@ class CronEdit_test < Test::Unit::TestCase
     ##__agent1__
     3 * * * * echo agent1
 
-    
+
     #comment
     3 * * * * echo agent2
-    
+
     ##__blankId__
     #anonymous
     3 * * * * echo anonymous
@@ -172,13 +172,13 @@ class CronEdit_test < Test::Unit::TestCase
             `crontab -r`; `crontab -d`
             assert_equal( {}, Crontab.new.list, 'precondition' )
             cm = Crontab.new
-            cm. add "agent1", "5,35 0-23/2 * * * echo agent1" 
-            cm. add "agent2", "0 2 * * * echo agent2" 
+            cm. add "agent1", "5,35 0-23/2 * * * echo agent1"
+            cm. add "agent2", "0 2 * * * echo agent2"
             cm.commit
             current=cm.list
             expected = {"agent1"=>"5,35 0-23/2 * * * echo agent1", "agent2"=>"0 2 * * * echo agent2"}
             assert_equal( expected, current, 'first commit' )
-    
+
             cm = Crontab.new
             cm. add "agent1", '59 * * * * echo "modified agent1"'
             cm.remove "agent2"
@@ -186,7 +186,7 @@ class CronEdit_test < Test::Unit::TestCase
             current = cm.list
             expected = {"agent1"=>"59 * * * * echo \"modified agent1\""}
             assert_equal( expected, current, 'second commit' )
-    
+
             Crontab.Remove "agent1"
             assert_equal( {}, Crontab.List, 'precondition' )
     end
@@ -246,32 +246,32 @@ class CronEdit_test < Test::Unit::TestCase
         fc1.add 'agent1', '59 * * * * echo "agent1"'
         fc1.add 'agent2', {:hour=>'2',:command=>'echo "huh"'}
         fc1.commit
-    
+
         fc2 = DummyCrontab.new
         fc2.add 'agent3', '59 * * * * echo "agent3"'
         fc2.remove 'agent2'
-        
+
         fc1.merge fc2
         fc1.commit
         output = fc1.to_s
         entries, lines = Crontab.new.setIO(StringIO.new(output),nil).listFull
         assert_equal 2, lines.length, "Lines"
-        assert_equal ['agent1','agent3'].sort, entries.keys.sort, "Entries"    
+        assert_equal ['agent1','agent3'].sort, entries.keys.sort, "Entries"
     end
 
     def test_mergeWithFile
         fc1 = FileCrontab.new File.join(File.dirname(__FILE__), 'testcron.txt')
-    
+
         fc2 = DummyCrontab.new
         fc2.add 'agent3', '59 * * * * echo "agent3"'
-        
+
         fc2.merge fc1
         fc2.commit
         output = fc2.to_s
 ##        puts "\n\n"+output
         entries, lines = Crontab.new.setIO(StringIO.new(output),nil).listFull
         assert_equal 5, lines.length, "Lines"
-        assert_equal ['1','2','3','test','agent3'].sort, entries.keys.sort, "Entries"    
+        assert_equal ['1','2','3','test','agent3'].sort, entries.keys.sort, "Entries"
     end
 
     def test_subtractFile
@@ -281,7 +281,7 @@ class CronEdit_test < Test::Unit::TestCase
         fc1.add '3', '59 * * * * echo "whatever"'
         fc1.commit
 
-    
+
         fc2= FileCrontab.new File.join(File.dirname(__FILE__), 'testcron.txt')
         fc1.subtract fc2
         fc1.commit
@@ -289,7 +289,7 @@ class CronEdit_test < Test::Unit::TestCase
 ##        puts "\n\n"+output
         entries, lines = Crontab.new.setIO(StringIO.new(output),nil).listFull
         assert_equal 1, lines.length, "Lines"
-        assert_equal ['test2'].sort, entries.keys.sort, "Entries"    
+        assert_equal ['test2'].sort, entries.keys.sort, "Entries"
     end
 
 end
