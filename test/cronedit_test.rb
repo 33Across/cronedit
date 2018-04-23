@@ -65,7 +65,7 @@ class CronEdit_test < Test::Unit::TestCase
         }
     end
 
-    def test_zip
+    def test_zip #zip what?
         Crontab.publicize_methods {
             crontabTest=%Q{
             5,35 0-23/2 * * * echo 123
@@ -76,10 +76,44 @@ class CronEdit_test < Test::Unit::TestCase
             ##__agent2__
             3 * * * * echo agent2
             #ignored comment
+            ##__agent3__
+            3 * * * * echo agent3
+            }
+            expected = {"agent1"=>"3 * * * * echo agent1", "agent2"=>"3 * * * * echo agent2", "agent3"=>"3 * * * * echo agent3"}
+            assert_equal( expected, Crontab.new.parseCrontab(crontabTest), 'parsing of crontab file')
+
+        }
+    end
+
+    def test_duplicate_id
+        Crontab.publicize_methods {
+            crontabTest=%Q{
+            ##__agent1__
+            3 * * * * echo agent1
+
+            ##__agent2__
+            3 * * * * echo agent2
+
             ##__agent1__
             3 * * * * echo agent3
+            }
+            assert_raise(RuntimeError){
+                Crontab.new.parseCrontab(crontabTest)
+            }
         }
-            expected = {"agent1"=>"3 * * * * echo agent3", "agent2"=>"3 * * * * echo agent2", "1"=>"5,35 0-23/2 * * * echo 123"}
+    end
+
+    def test_no_automated_id_conflicts
+        Crontab.publicize_methods {
+            crontabTest=%Q{
+            ##__1__
+            3 * * * * echo agent1
+
+            3 * * * * echo agent2
+
+            3 * * * * echo agent3
+            }
+            expected = {"1"=>"3 * * * * echo agent1"}
             assert_equal( expected, Crontab.new.parseCrontab(crontabTest), 'parsing of crontab file')
         }
     end
@@ -115,7 +149,7 @@ class CronEdit_test < Test::Unit::TestCase
                 f.rewind
                 entries, lines = Crontab.new.parseCrontabFull f
                 assert_equal 12, lines.length, "Lines"
-                assert_equal ['1','2','3','test'].sort, entries.keys.sort, "Entries"
+                assert_equal ['test', 'test2'].sort, entries.keys.sort, "Entries"
                 #puts "--------------Lines:  \n#{lines.join("\n") }"
                 #puts "--------------entries:  \n#{entries.map {|k,v| "#{k}=>#{v}\n"} }"
                 output = StringIO.new
@@ -125,7 +159,7 @@ class CronEdit_test < Test::Unit::TestCase
                 output.rewind
                 entries2, lines2 = Crontab.new.parseCrontabFull output
                 assert_equal 12, lines2.length, "Lines2"
-                assert_equal ['1','2','3','test'].sort, entries2.keys.sort, "Entries2"
+                assert_equal ['test', 'test2'].sort, entries2.keys.sort, "Entries2"
             }
         }
     end
@@ -148,13 +182,12 @@ class CronEdit_test < Test::Unit::TestCase
         ct.setIO StringIO.new(crontabTest), nil
         entries, lines = ct.listFull
         assert_equal 11, lines.length, "Lines"
-        assert_equal ['agent1','1','2'].sort, entries.keys.sort, "Entries"
+        assert_equal ['agent1','blankId'].sort, entries.keys.sort, "Entries"
 ##        puts "--------------Lines:  \n#{lines.join("\n") }"
 ##        puts "--------------entries:  \n#{entries.map {|k,v| "#{k}=>#{v}\n"} }"
 
         ct.add 'agent1', '5,35 0-23/2 * * * echo agent1'   #overwriting
         ct.add 'agent3', '0 2 * * * echo agent3'   #new agent
-        ct.remove '2'
         output = StringIO.new
         ct.setIO StringIO.new(crontabTest), output
         ct.commit
@@ -162,8 +195,8 @@ class CronEdit_test < Test::Unit::TestCase
         # loop
         ct.setIO StringIO.new(output.string), nil
         entries, lines = ct.listFull
-        assert_equal 11, lines.length, "Lines"
-        assert_equal ['agent1','agent3','1'].sort, entries.keys.sort, "Entries"
+        assert_equal 12, lines.length, "Lines"
+        assert_equal ['agent1','agent3','blankId'].sort, entries.keys.sort, "Entries"
 ##        puts "--------------Lines:  \n#{lines.join("\n") }"
 ##        puts "--------------entries:  \n#{entries.map {|k,v| "#{k}=>#{v}\n"} }"
     end
@@ -198,12 +231,11 @@ class CronEdit_test < Test::Unit::TestCase
     def test_filecrontab
         fc = FileCrontab.new File.join(File.dirname(__FILE__), 'testcron.txt'), '/tmp/crontest.txt'
         fc.add 'file', '59 * * * * echo "file"'
-        fc.remove 2, 3
         fc.commit
         # check it
         entries, lines = FileCrontab.new( '/tmp/crontest.txt',nil).listFull
-        assert_equal 11, lines.length, "Lines"
-        assert_equal ['1','test','file'].sort, entries.keys.sort, "Entries"
+        assert_equal 12+1, lines.length, "Lines"
+        assert_equal ['test','test2','file'].sort, entries.keys.sort, "Entries"
     end
 
     def test_filecrontab2
@@ -270,8 +302,8 @@ class CronEdit_test < Test::Unit::TestCase
         output = fc2.to_s
 ##        puts "\n\n"+output
         entries, lines = Crontab.new.setIO(StringIO.new(output),nil).listFull
-        assert_equal 5, lines.length, "Lines"
-        assert_equal ['1','2','3','test','agent3'].sort, entries.keys.sort, "Entries"
+        assert_equal 3, lines.length, "Lines"
+        assert_equal ['test','test2','agent3'].sort, entries.keys.sort, "Entries"
     end
 
     def test_subtractFile
@@ -289,7 +321,7 @@ class CronEdit_test < Test::Unit::TestCase
 ##        puts "\n\n"+output
         entries, lines = Crontab.new.setIO(StringIO.new(output),nil).listFull
         assert_equal 1, lines.length, "Lines"
-        assert_equal ['test2'].sort, entries.keys.sort, "Entries"
+        assert_equal ['3'].sort, entries.keys.sort, "Entries"
     end
 
 end
