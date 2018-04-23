@@ -1,0 +1,30 @@
+image: docker.internal.33across.com/ruby:1.9.3-p551
+before_script:
+  - source /usr/local/rvm/scripts/rvm
+test:
+  stage: test
+
+  script:
+    - ruby test/cronedit_test.rb
+
+build:
+  stage: build
+  script:
+    - "gem build *.gemspec"
+  artifacts:
+    paths:
+      - "*.gem"
+  only:
+    - tags
+
+publish:
+  stage: deploy
+  before_script:
+    - echo "Skipping global before_script"
+    - source /usr/local/rvm/scripts/rvm
+  script:
+    - "gem nexus --url \"https://nexus.internal.33across.com/repository/ruby\" --credential \"$NEXUS_USERNAME:$NEXUS_PASSWORD\" *.gem"
+  dependencies:
+    - build
+  only:
+    - tags
