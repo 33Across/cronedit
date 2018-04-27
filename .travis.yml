@@ -12,6 +12,6 @@ addons:
   apt:
     packages:
       - cron
-#sudo: enabled
+sudo: enabled
 install:
   -
