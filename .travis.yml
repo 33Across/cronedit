@@ -14,4 +14,4 @@ addons:
       - cron
 sudo: enabled
 install:
-  -
+  - gem install test-unit
