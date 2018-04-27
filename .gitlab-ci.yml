@@ -1,6 +1,7 @@
 image: docker.internal.33across.com/ruby:1.9.3-p551
 before_script:
   - source /usr/local/rvm/scripts/rvm
+  - yum install -y cronie
 test:
   stage: test
 
