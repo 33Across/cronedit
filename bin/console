@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+
+require "./lib/cronedit"
+
+require "irb"
+IRB.start(__FILE__)
